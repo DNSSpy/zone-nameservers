@@ -1,6 +1,6 @@
-# domain-nameservers
+# zone-nameservers
 
-Walk the DNS tree to find which nameservers a particular domain uses. Mimics "dig +trace", but written in Go.
+Walk the DNS tree to find which name servers a particular zone uses. Mimics "dig +trace", but written in Go as an experiment.
 
 # Building
 
@@ -8,7 +8,7 @@ After a git clone;
 
 ```
 $ go build
-$ ./domain-nameservers YOURDOMAIN.TLD
+$ ./zone-nameservers YOURDOMAIN.TLD
 ```
 
 # Examples
@@ -16,7 +16,7 @@ $ ./domain-nameservers YOURDOMAIN.TLD
 Here's what it looks like for [dnsspy.io](https://dnsspy.io).
 
 ```
-./domain-nameservers dnsspy.io
+./zone-nameservers dnsspy.io
 Retrieving list of root nameservers:
  - a.root-servers.net.
  - b.root-servers.net.
@@ -51,3 +51,9 @@ Finding nameservers for zone 'dnsspy.io.' using parent nameserver 'ns-a3.io.'
  ```
 
 The arrow represents which nameserver from the parent was used to query for details of the child zone.
+
+# Why?
+
+Why not just query directly for `NS` records, you ask? Not everyone keeps those up-to-date and they often return outdated or wrong information, as nameservers change without modifying the `NS` records to reflect that.
+
+In other words: the only _absolutely_ way to find our which nameservers a particular zone uses, you have to walk the DNS tree.
