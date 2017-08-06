@@ -57,3 +57,7 @@ The arrow represents which nameserver from the parent was used to query for deta
 Why not just query directly for `NS` records, you ask? Not everyone keeps those up-to-date and they often return outdated or wrong information, as nameservers change without modifying the `NS` records to reflect that.
 
 In other words: the only _absolutely_ way to find our which nameservers a particular zone uses, you have to walk the DNS tree.
+
+# Credits
+
+This code is initially based on the [check-soa](https://github.com/miekg/exdns/tree/master/check-soa) script by [miekg](https://github.com/miekg).
