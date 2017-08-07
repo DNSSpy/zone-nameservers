@@ -25,8 +25,8 @@ var (
 	localc           *dns.Client
 	conf             *dns.ClientConfig
 	domain           string
-	assembled_domain string
-	next_ns          string
+	assembledDomain string
+	nextNs          string
 )
 
 func localQuery(qname string, qtype uint16, server string) (*dns.Msg, error) {
@@ -112,12 +112,12 @@ func main() {
 
 	// Walk the root until you find the authoritative nameservers
 	fmt.Printf("Retrieving list of root nameservers:\n")
-	root_nameservers, next_ns, err := getNsRecords(".", conf.Servers[0])
+	root_nameservers, nextNs, err := getNsRecords(".", conf.Servers[0])
 	if err != nil {
 		log.Fatal("Query failed: ", err)
 	}
 	for _, nameserver := range root_nameservers {
-		if nameserver == next_ns {
+		if nameserver == nextNs {
 			// We'll use this one for queries
 			fmt.Println(" ➡️ " + nameserver)
 		} else {
@@ -127,27 +127,27 @@ func main() {
 
 	// We have list of root nameservers: split domain, query each part for NS records
 	domain_pieces := dns.SplitDomainName(domain)
-	assembled_domain = "."
+	assembledDomain = "."
 	var ns []string
 
 	for i := len(domain_pieces) - 1; i >= 0; i-- {
 		fmt.Println("\n")
 		element := domain_pieces[i]
-		if assembled_domain == "." {
-			assembled_domain = element + "."
+		if assembledDomain == "." {
+			assembledDomain = element + "."
 		} else {
-			assembled_domain = element + "." + assembled_domain
+			assembledDomain = element + "." + assembledDomain
 		}
 
-		fmt.Println("Finding nameservers for zone '" + assembled_domain + "' using parent nameserver '" + next_ns + "'")
-		ns, next_ns, err = getNsRecords(assembled_domain, next_ns)
+		fmt.Println("Finding nameservers for zone '" + assembledDomain + "' using parent nameserver '" + nextNs + "'")
+		ns, nextNs, err = getNsRecords(assembledDomain, nextNs)
 		if err != nil {
 			fmt.Println("Query failed: ", err)
 		}
 
 		// Print the nameservers for this zone, highlight the one we used to query
 		for _, nameserver := range ns {
-			if nameserver == next_ns && dns.Fqdn(domain) != assembled_domain {
+			if nameserver == nextNs && dns.Fqdn(domain) != assembledDomain {
 				// We'll use this one for queries
 				fmt.Println(" ➡️ " + nameserver)
 			} else {
