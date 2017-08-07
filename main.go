@@ -87,15 +87,16 @@ func getNsRecords(zone string, server string) ([]string, string, error) {
 
 func main() {
 	if len(os.Args) != 2 {
-		log.Fatal("%s ZONE\n", os.Args[0])
+		log.Fatalf("%s ZONE\n", os.Args[0])
 	}
 	domain = os.Args[1]
 
 	rand.Seed(time.Now().Unix())
 	var err error
 	conf, err = dns.ClientConfigFromFile("/etc/resolv.conf")
+
 	if err != nil || conf == nil {
-		log.Fatal("Cannot initialize the local resolver: %s\n", err)
+		log.Fatalf("Cannot initialize the local resolver: %s\n", err)
 	}
 	localm = &dns.Msg{
 		MsgHdr: dns.MsgHdr{
@@ -111,7 +112,7 @@ func main() {
 	fmt.Printf("Retrieving list of root nameservers:\n")
 	rootNameservers, nextNs, err := getNsRecords(".", conf.Servers[0])
 	if err != nil {
-		log.Fatal("Query failed: ", err)
+		log.Fatalf("Query failed: %s", err)
 	}
 	for _, nameserver := range rootNameservers {
 		if nameserver == nextNs {
