@@ -62,7 +62,7 @@ func getNsRecords(zone string, server string) ([]string, string, error) {
     }
   }
 
-  if (!success) {
+  if !success {
     // No "Answer" given by the server, check the Authority section if
     // additional nameservers were provided.
     for _, ans := range r.Ns {
@@ -80,7 +80,6 @@ func getNsRecords(zone string, server string) ([]string, string, error) {
   }
 
   // Pick a random NS record for the next queries
-  rand.Seed(time.Now().Unix()) // initialize global pseudo random generator
   random_ns = nameservers[rand.Intn(len(nameservers))]
 
   sort.Strings(nameservers)
@@ -96,6 +95,7 @@ func main() {
   }
   domain = os.Args[1]
 
+  rand.Seed(time.Now().Unix())
   var err error
   conf, err = dns.ClientConfigFromFile("/etc/resolv.conf")
   if err != nil || conf == nil {
@@ -119,12 +119,12 @@ func main() {
     fmt.Println("Query failed: ", err)
     os.Exit(1)
   }
-  for x := 0; x < len(root_nameservers); x++ {
-    if root_nameservers[x] == next_ns {
+  for _, nameserver := range(root_nameservers) {
+    if nameserver == next_ns {
       // We'll use this one for queries
-      fmt.Println(" ➡️ "+ root_nameservers[x])
+      fmt.Println(" ➡️ "+ nameserver)
     } else {
-      fmt.Println(" - "+ root_nameservers[x])
+      fmt.Println(" - "+ nameserver)
     }
   }
 
@@ -149,12 +149,12 @@ func main() {
     }
 
     // Print the nameservers for this zone, highlight the one we used to query
-    for x := 0; x < len(ns); x++ {
-      if ns[x] == next_ns && dns.Fqdn(domain) != assembled_domain {
+    for _, nameserver := range(ns) {
+      if nameserver == next_ns && dns.Fqdn(domain) != assembled_domain {
         // We'll use this one for queries
-        fmt.Println(" ➡️ "+ ns[x])
+        fmt.Println(" ➡️ "+ nameserver)
       } else {
-        fmt.Println(" - "+ ns[x])
+        fmt.Println(" - "+ nameserver)
       }
     }
   }
