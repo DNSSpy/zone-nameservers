@@ -50,7 +50,7 @@ func getNsRecords(zone string, server string) ([]string, string, error) {
 	}
 
 	var nameservers []string
-	var random_ns string
+	var randomNs string
 
 	for _, ans := range r.Answer {
 		switch t := ans.(type) {
@@ -77,11 +77,11 @@ func getNsRecords(zone string, server string) ([]string, string, error) {
 	}
 
 	// Pick a random NS record for the next queries
-	random_ns = nameservers[rand.Intn(len(nameservers))]
+	randomNs = nameservers[rand.Intn(len(nameservers))]
 
 	sort.Strings(nameservers)
 
-	return nameservers, random_ns, nil
+	return nameservers, randomNs, nil
 
 }
 
@@ -109,11 +109,11 @@ func main() {
 
 	// Walk the root until you find the authoritative nameservers
 	fmt.Printf("Retrieving list of root nameservers:\n")
-	root_nameservers, nextNs, err := getNsRecords(".", conf.Servers[0])
+	rootNameservers, nextNs, err := getNsRecords(".", conf.Servers[0])
 	if err != nil {
 		log.Fatal("Query failed: ", err)
 	}
-	for _, nameserver := range root_nameservers {
+	for _, nameserver := range rootNameservers {
 		if nameserver == nextNs {
 			// We'll use this one for queries
 			fmt.Println(" ➡️ " + nameserver)
@@ -123,13 +123,13 @@ func main() {
 	}
 
 	// We have list of root nameservers: split domain, query each part for NS records
-	domain_pieces := dns.SplitDomainName(domain)
+	domainPieces := dns.SplitDomainName(domain)
 	assembledDomain = "."
 	var ns []string
 
-	for i := len(domain_pieces) - 1; i >= 0; i-- {
-		fmt.Println("\n")
-		element := domain_pieces[i]
+	for i := len(domainPieces) - 1; i >= 0; i-- {
+		fmt.Print("\n")
+		element := domainPieces[i]
 		if assembledDomain == "." {
 			assembledDomain = element + "."
 		} else {
@@ -152,5 +152,4 @@ func main() {
 			}
 		}
 	}
-
 }
