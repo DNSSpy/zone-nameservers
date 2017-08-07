@@ -21,10 +21,10 @@ const (
 )
 
 var (
-	localm           *dns.Msg
-	localc           *dns.Client
-	conf             *dns.ClientConfig
-	domain           string
+	localm          *dns.Msg
+	localc          *dns.Client
+	conf            *dns.ClientConfig
+	domain          string
 	assembledDomain string
 	nextNs          string
 )
@@ -46,7 +46,7 @@ func getNsRecords(zone string, server string) ([]string, string, error) {
 	zone = dns.Fqdn(zone)
 	r, err := localQuery(zone, dns.TypeNS, server)
 	if err != nil || r == nil {
-		log.Fatal("Cannot retrieve the list of name servers for %s: %s\n", zone, err)
+		return nil, "", err
 	}
 
 	var nameservers []string
