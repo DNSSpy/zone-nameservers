@@ -9,6 +9,7 @@ import (
   "time"
   "math/rand"
   "sort"
+  "log"
 
   "github.com/miekg/dns"
 )
@@ -45,8 +46,7 @@ func getNsRecords(zone string, server string) ([]string, string, error) {
   zone = dns.Fqdn(zone)
   r, err := localQuery(zone, dns.TypeNS, server)
   if err != nil || r == nil {
-    fmt.Printf("Cannot retrieve the list of name servers for %s: %s\n", zone, err)
-    os.Exit(1)
+    log.Fatal("Cannot retrieve the list of name servers for %s: %s\n", zone, err)
   }
 
   var success bool
@@ -90,8 +90,7 @@ func getNsRecords(zone string, server string) ([]string, string, error) {
 
 func main() {
   if len(os.Args) != 2 {
-    fmt.Printf("%s ZONE\n", os.Args[0])
-    os.Exit(1)
+    log.Fatal("%s ZONE\n", os.Args[0])
   }
   domain = os.Args[1]
 
@@ -99,8 +98,7 @@ func main() {
   var err error
   conf, err = dns.ClientConfigFromFile("/etc/resolv.conf")
   if err != nil || conf == nil {
-    fmt.Printf("Cannot initialize the local resolver: %s\n", err)
-    os.Exit(1)
+    log.Fatal("Cannot initialize the local resolver: %s\n", err)
   }
   localm = &dns.Msg{
     MsgHdr: dns.MsgHdr{
@@ -116,8 +114,7 @@ func main() {
   fmt.Printf("Retrieving list of root nameservers:\n")
   root_nameservers, next_ns, err := getNsRecords(".", conf.Servers[0])
   if err != nil {
-    fmt.Println("Query failed: ", err)
-    os.Exit(1)
+    log.Fatal("Query failed: ", err)
   }
   for _, nameserver := range(root_nameservers) {
     if nameserver == next_ns {
