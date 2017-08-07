@@ -1,4 +1,4 @@
-# zone-nameservers
+# [![baby-gopher](https://raw.githubusercontent.com/drnic/babygopher-site/gh-pages/images/babygopher-badge.png)](http://www.babygopher.org) zone-nameservers
 
 Walk the DNS tree to find which name servers a particular zone uses. Mimics "dig +trace", but written in Go as an experiment.
 
