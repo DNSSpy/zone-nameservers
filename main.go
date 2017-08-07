@@ -49,7 +49,6 @@ func getNsRecords(zone string, server string) ([]string, string, error) {
 		log.Fatal("Cannot retrieve the list of name servers for %s: %s\n", zone, err)
 	}
 
-	var success bool
 	var nameservers []string
 	var random_ns string
 
@@ -58,11 +57,10 @@ func getNsRecords(zone string, server string) ([]string, string, error) {
 		case *dns.NS:
 			nameserver := t.Ns
 			nameservers = append(nameservers, nameserver)
-			success = true
 		}
 	}
 
-	if !success {
+	if len(nameservers) == 0 {
 		// No "Answer" given by the server, check the Authority section if
 		// additional nameservers were provided.
 		for _, ans := range r.Ns {
@@ -70,12 +68,11 @@ func getNsRecords(zone string, server string) ([]string, string, error) {
 			case *dns.NS:
 				nameserver := t.Ns
 				nameservers = append(nameservers, nameserver)
-				success = true
 			}
 		}
 	}
 
-	if !success {
+	if len(nameservers) == 0 {
 		return nil, "", errors.New("No nameservers found for " + zone)
 	}
 
