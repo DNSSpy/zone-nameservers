@@ -20,42 +20,52 @@ const (
 	DefaultTimeout time.Duration = 5 * time.Second
 )
 
-var (
-	localm          *dns.Msg
-	localc          *dns.Client
-	conf            *dns.ClientConfig
-	domain          string
-	assembledDomain string
-)
-
 func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-func localQuery(qname string, qtype uint16, server string) (*dns.Msg, error) {
-	localm.SetQuestion(qname, qtype)
+type ZoneNsResolver struct {
+	localm *dns.Msg
+	localc *dns.Client
+}
 
-	r, _, err := localc.Exchange(localm, server+":53")
+func NewZoneNsResolver() *ZoneNsResolver {
+	return &ZoneNsResolver{
+		&dns.Msg{
+			MsgHdr: dns.MsgHdr{
+				RecursionDesired: true,
+			},
+			Question: make([]dns.Question, 1),
+		},
+		&dns.Client{
+			ReadTimeout: DefaultTimeout,
+		},
+	}
+}
+
+func (zr *ZoneNsResolver) localQuery(qname string, qtype uint16, server string) (*dns.Msg, error) {
+	zr.localm.SetQuestion(qname, qtype)
+
+	r, _, err := zr.localc.Exchange(zr.localm, server+":53")
 	if err != nil {
 		return nil, err
 	}
 	if r == nil || r.Rcode == dns.RcodeNameError || r.Rcode == dns.RcodeSuccess {
-		return r, err
+		return r, nil
 	}
 
 	return nil, errors.New("No name server to answer the question")
 }
 
-func getNsRecords(zone string, server string) ([]string, string, error) {
+func (zr *ZoneNsResolver) Resolve(zone string, server string) ([]string, error) {
 	zone = dns.Fqdn(zone)
 
-	r, err := localQuery(zone, dns.TypeNS, server)
+	r, err := zr.localQuery(zone, dns.TypeNS, server)
 	if err != nil || r == nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	var nameservers []string
-	var randomNs string
 
 	for _, ans := range r.Answer {
 		if t, ok := ans.(*dns.NS); ok {
@@ -76,86 +86,61 @@ func getNsRecords(zone string, server string) ([]string, string, error) {
 	}
 
 	if len(nameservers) == 0 {
-		return nil, "", errors.New("No nameservers found for " + zone)
+		return nil, errors.New("No nameservers found for " + zone)
 	}
-
-	// Pick a random NS record for the next queries
-	randomNs = nameservers[rand.Intn(len(nameservers))]
 
 	sort.Strings(nameservers)
 
-	return nameservers, randomNs, nil
+	return nameservers, nil
+}
+
+func domainToZones(domain string) []string {
+	zones := []string{"."}
+
+	assembled := ""
+	pieces := dns.SplitDomainName(domain)
+	for i := len(pieces) - 1; i >= 0; i-- {
+		assembled = pieces[i] + "." + assembled
+		zones = append(zones, assembled)
+	}
+	return zones
 }
 
 func main() {
 	if len(os.Args) != 2 {
 		log.Fatalf("%s ZONE\n", os.Args[0])
 	}
-	domain = os.Args[1]
+	domain := dns.Fqdn(os.Args[1])
 
-	var err error
-
-	conf, err = dns.ClientConfigFromFile("/etc/resolv.conf")
+	conf, err := dns.ClientConfigFromFile("/etc/resolv.conf")
 	if err != nil || conf == nil {
 		log.Fatalf("Cannot initialize the local resolver: %s\n", err)
 	}
 
-	localm = &dns.Msg{
-		MsgHdr: dns.MsgHdr{
-			RecursionDesired: true,
-		},
-		Question: make([]dns.Question, 1),
-	}
+	resolver := NewZoneNsResolver()
 
-	localc = &dns.Client{
-		ReadTimeout: DefaultTimeout,
-	}
-
-	// Walk the root until you find the authoritative nameservers
-	fmt.Println("Retrieving list of root nameservers:")
-
-	rootNameservers, nextNs, err := getNsRecords(".", conf.Servers[0])
-	if err != nil {
-		log.Fatalf("Query failed: %s", err)
-	}
-
-	for _, nameserver := range rootNameservers {
-		if nameserver == nextNs {
-			// We'll use this one for queries
-			fmt.Println(" ➡️ " + nameserver)
-		} else {
-			fmt.Println(" - " + nameserver)
-		}
-	}
-
-	// We have list of root nameservers: split domain, query each part for NS records
-	domainPieces := dns.SplitDomainName(domain)
-	assembledDomain = "."
 	var ns []string
-	var element string
+	nextNs := conf.Servers[0]
 
-	// Reverse loop.
-	for len(domainPieces) > 0 {
-		element = domainPieces[len(domainPieces)-1]
-		domainPieces = domainPieces[:len(domainPieces)-1]
-
-		fmt.Print("\n")
-
-		if assembledDomain == "." {
-			assembledDomain = element + "."
+	// split domain, query each part for NS records
+	for _, zone := range domainToZones(domain) {
+		if zone == "." {
+			fmt.Println("Retrieving list of root nameservers:")
 		} else {
-			assembledDomain = element + "." + assembledDomain
+			fmt.Println("\nFinding nameservers for zone '" + zone + "' using parent nameserver '" + nextNs + "'")
 		}
 
-		fmt.Println("Finding nameservers for zone '" + assembledDomain + "' using parent nameserver '" + nextNs + "'")
-		ns, nextNs, err = getNsRecords(assembledDomain, nextNs)
+		ns, err = resolver.Resolve(zone, nextNs)
 		if err != nil {
 			log.Fatalln("Query failed: ", err)
 		}
 
+		// Pick a random NS record for the next queries
+		nextNs = ns[rand.Intn(len(ns))]
+
 		// Print the nameservers for this zone, highlight the one we used to query
 		for _, nameserver := range ns {
-			if nameserver == nextNs && dns.Fqdn(domain) != assembledDomain {
+			if nameserver == nextNs && domain != zone {
 				// We'll use this one for queries
 				fmt.Println(" ➡️ " + nameserver)
 			} else {
