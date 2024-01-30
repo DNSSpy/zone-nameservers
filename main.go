@@ -39,6 +39,7 @@ func NewZoneNsResolver() *ZoneNsResolver {
 		},
 		&dns.Client{
 			ReadTimeout: DefaultTimeout,
+			UDPSize:     4096,
 		},
 	}
 }
